@@ -111,11 +111,6 @@ def rename_columns(df: pd.DataFrame, rename_mapping: dict):
 def download_dataset():
     return kagglehub.dataset_download(DATASET_URL)
 
-# ------------------------------------
-# ---------- TABLE COMBINATION -------
-# ------------------------------------
-
-
 
 # ------------------------------------
 # ---------- CSV FORMATTING ----------
@@ -204,11 +199,17 @@ def format_games():
     )
 
     # Move game_id to first column and country_id to last column
-    columns = ["game_id"] + [col for col in df.columns if col not in ["game_id", "country_id"]] + ["country_id"]
+    columns = (
+        ["game_id"]
+        + [col for col in df.columns if col not in ["game_id", "country_id"]]
+        + ["country_id"]
+    )
     df = df[columns]
 
     # Turns "is_held" into a boolean
-    df["was_held"] = ~df["was_held"].notna() & df["was_held"].astype(str).str.strip().ne("")
+    df["was_held"] = ~df["was_held"].notna() & df["was_held"].astype(
+        str
+    ).str.strip().ne("")
 
     df.to_csv(path, index=False)
 
@@ -231,8 +232,6 @@ def main():
         new_path = os.path.join(DATASET_PATH, new_name)
 
         rename_file(old_path, new_path)
-
-    # TABLE COMBINATION
 
     # CSV FORMATTING
     format_countries()
