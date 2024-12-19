@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS country (
 	country_id CHAR(3) PRIMARY KEY,
-	name VARCHAR(64) NOT NULL
+	name VARCHAR(128) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS athlete (
 	athlete_id INT PRIMARY KEY,
-	name VARCHAR(128) NOT NULL,
+	name VARCHAR(256) NOT NULL,
 	gender VARCHAR(32),
 	date_of_birth DATE,
 	height DECIMAL(5,2),
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS athlete (
 
 CREATE TABLE IF NOT EXISTS game (
 	game_id INT PRIMARY KEY,
-	title VARCHAR(128) NOT NULL,
+	title VARCHAR(256) NOT NULL,
 	city VARCHAR(128) NOT NULL,
 	start_date DATE,
 	end_date DATE,
@@ -27,25 +27,25 @@ CREATE TABLE IF NOT EXISTS game (
 
 CREATE TABLE IF NOT EXISTS sport (
 	sport_id INT PRIMARY KEY,
-	sport_name VARCHAR(128) NOT NULL,
-	is_team_sport BOOLEAN
+	name VARCHAR(256) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "event" (
 	event_id INT PRIMARY KEY,
-	event_name VARCHAR(128) NOT NULL,
+	name VARCHAR(256) NOT NULL,
 	gender VARCHAR(32),
+	is_team_event BOOLEAN,
 	sport_id INT,
 	FOREIGN KEY (sport_id) REFERENCES sport(sport_id)
 );
 
 CREATE TABLE IF NOT EXISTS "result" (
 	result_id INT PRIMARY KEY,
-	"position" INT,
-	athlete_id INT,
-	event_id INT,
+	"position" VARCHAR(32),
 	game_id INT,
-	FOREIGN KEY (athlete_id) REFERENCES athlete(athlete_id),
+	event_id INT,
+	athlete_id INT,
+	FOREIGN KEY (game_id) REFERENCES game(game_id),
 	FOREIGN KEY (event_id) REFERENCES "event"(event_id),
-	FOREIGN KEY (game_id) REFERENCES game(game_id)
+	FOREIGN KEY (athlete_id) REFERENCES athlete(athlete_id)
 );
