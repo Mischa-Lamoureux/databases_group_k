@@ -17,18 +17,20 @@ DATASET_PATH = f"{BASE_DIRECTORY}{DATASET_FOLDER}"
 
 IRRELEVANT_FILES = ["Olympic_Games_Medal_Tally.csv", "Olympic_Results.csv"]
 
-TABLE_TO_CSV = {
+CSV_NAMES = {
     "Athlete": "athlete.csv",
     "Country": "country.csv",
     "Event": "event.csv",
     "Game": "game.csv",
+    "Sport": "sport.csv",
+    "Result": "result.csv",
 }
 
 CSV_NAME_MAPPING = {
-    "Olympic_Athlete_Bio.csv": TABLE_TO_CSV["Athlete"],
-    "Olympics_Country.csv": TABLE_TO_CSV["Country"],
-    "Olympic_Athlete_Event_Results.csv": TABLE_TO_CSV["Event"],
-    "Olympics_Games.csv": TABLE_TO_CSV["Game"],
+    "Olympic_Athlete_Bio.csv": CSV_NAMES["Athlete"],
+    "Olympics_Country.csv": CSV_NAMES["Country"],
+    "Olympic_Athlete_Event_Results.csv": CSV_NAMES["Event"],
+    "Olympics_Games.csv": CSV_NAMES["Game"],
 }
 
 # ---------------------------
@@ -36,7 +38,7 @@ CSV_NAME_MAPPING = {
 # ---------------------------
 
 
-def delete_file(file_path):
+def delete_file(file_path: str):
     if os.path.exists(file_path):
         os.remove(file_path)
         print(f"Deleted: {os.path.basename(file_path)}")
@@ -44,7 +46,7 @@ def delete_file(file_path):
         print(f"Error: File {file_path} does not exist.")
 
 
-def delete_directory(directory_path):
+def delete_directory(directory_path: str):
     if not os.path.exists(directory_path):
         print(f"Error: Directory '{directory_path}' does not exist.")
 
@@ -60,12 +62,22 @@ def delete_directory(directory_path):
         print(f"Error while deleting directory '{directory_path}': {str(e)}")
 
 
-def rename_file(old_path, new_path):
+def rename_file(old_path: str, new_path: str):
     if os.path.exists(old_path):
         os.rename(old_path, new_path)
         print(f"Renamed: {os.path.basename(old_path)} -> {os.path.basename(new_path)}")
     else:
         print(f"File not found: {old_path}")
+
+
+def duplicate_file(source_path: str, target_path: str):
+    try:
+        shutil.copyfile(source_path, target_path)
+        print(f"File duplicated successfully from '{source_path}' to '{target_path}'.")
+    except FileNotFoundError:
+        print(f"Error: Source file '{source_path}' does not exist.")
+    except Exception as e:
+        print(f"Error: Could not duplicate the file. {str(e)}")
 
 
 def move_folder(source_folder: str, dest_folder: str, folder_name: str = None):
@@ -118,7 +130,7 @@ def download_dataset():
 
 
 def format_countries():
-    path = os.path.join(DATASET_PATH, TABLE_TO_CSV["Country"])
+    path = os.path.join(DATASET_PATH, CSV_NAMES["Country"])
     df = pd.read_csv(path)
 
     rename_columns(
@@ -136,7 +148,7 @@ def format_countries():
 
 
 def format_athletes():
-    path = os.path.join(DATASET_PATH, TABLE_TO_CSV["Athlete"])
+    path = os.path.join(DATASET_PATH, CSV_NAMES["Athlete"])
     df = pd.read_csv(path)
 
     # Format dates
@@ -171,7 +183,7 @@ def format_athletes():
 
 
 def format_games():
-    path = os.path.join(DATASET_PATH, TABLE_TO_CSV["Game"])
+    path = os.path.join(DATASET_PATH, CSV_NAMES["Game"])
     df = pd.read_csv(path)
 
     # Strip leading/trailing spaces
@@ -214,6 +226,131 @@ def format_games():
     df.to_csv(path, index=False)
 
 
+def format_results():
+    event_path = os.path.join(DATASET_PATH, CSV_NAMES["Event"])
+    result_path = os.path.join(DATASET_PATH, CSV_NAMES["Result"])
+
+    duplicate_file(event_path, result_path)
+    result_df = pd.read_csv(result_path)
+
+    delete_columns(
+        result_df,
+        ["edition", "country_noc", "sport", "event", "athlete", "medal", "isTeamSport"],
+    )
+
+    rename_columns(
+        result_df,
+        {
+            "edition_id": "game_id",
+            "result_id": "event_id",
+            "pos": "position",
+        },
+    )
+
+    # Delete duplicate rows
+    result_df.drop_duplicates(subset=None, keep="first", inplace=True)
+
+    # Add result_id column
+    result_df.insert(0, "result_id", range(len(result_df)))
+
+    # Move position to second column
+    gender_col = result_df.pop("position")
+    result_df.insert(1, "position", gender_col)
+
+    # For results with invalid athelete_ids
+    def replace_invalid_athelete_ids():
+        athlete_path = os.path.join(DATASET_PATH, CSV_NAMES["Athlete"])
+        athlete_df = pd.read_csv(athlete_path)
+
+        # Get set of valid athlete ids
+        valid_athlete_ids = set(athlete_df["athlete_id"])
+
+        result_df["athlete_id"] = result_df["athlete_id"].apply(
+            lambda x: x if x in valid_athlete_ids else pd.NA
+        )
+
+    replace_invalid_athelete_ids()
+
+    result_df.to_csv(result_path, index=False)
+
+
+def format_sports():
+    path = os.path.join(DATASET_PATH, CSV_NAMES["Event"])
+    df = pd.read_csv(path)
+
+    # Create a unique mapping for sports
+    unique_sports = df["sport"].unique()
+    sports_mapping = {sport: idx + 1 for idx, sport in enumerate(unique_sports)}
+
+    # Create a DataFrame for the sport mapping
+    sports_df = pd.DataFrame(list(sports_mapping.items()), columns=["name", "sport_id"])
+    sports_df = sports_df[["sport_id", "name"]].sort_values("sport_id")
+
+    # Save sport mappings to CSV file
+    sports_path = os.path.join(DATASET_PATH, CSV_NAMES["Sport"])
+    sports_df.to_csv(sports_path, index=False)
+
+    # Replace sport column with corresponding id
+    df["sport_id"] = df["sport"].map(sports_mapping)
+    df.drop(columns=["sport"], inplace=True)
+
+    columns = [col for col in df.columns if col != "sport_id"] + ["sport_id"]
+    df = df[columns]
+
+    df.to_csv(path, index=False)
+
+
+def format_events():
+    path = os.path.join(DATASET_PATH, CSV_NAMES["Event"])
+    df = pd.read_csv(path)
+
+    delete_columns(
+        df,
+        [
+            "edition",
+            "edition_id",
+            "country_noc",
+            "athlete",
+            "athlete_id",
+            "pos",
+            "medal",
+        ],
+    )
+
+    rename_columns(
+        df,
+        {
+            "result_id": "event_id",
+            "event": "name",
+            "isTeamSport": "is_team_event",
+        },
+    )
+
+    # Drop all duplicate event_ids
+    df.drop_duplicates(subset=["event_id"], keep="first", inplace=True)
+
+    # Move event_id to the first column
+    columns = ["event_id"] + [col for col in df.columns if col != "event_id"]
+    df = df[columns]
+
+    # Extract gender from `name`
+    df["gender"] = df["name"].str.extract(r"(Men|Women|Boys)$").fillna("")
+
+    # Remove gender suffix from `name`
+    df["name"] = (
+        df["name"].str.replace(r"(Men|Women|Boys)$", "", regex=True).str.strip(", ")
+    )
+
+    # Replace "Boys" with "Men"
+    df["gender"] = df["gender"].replace({"Boys": "Men"})
+
+    # Move gender to third column
+    gender_col = df.pop("gender")
+    df.insert(2, "gender", gender_col)
+
+    df.to_csv(path, index=False)
+
+
 def main():
     delete_directory(DATASET_PATH)
     download_directory = download_dataset()  # Download dataset
@@ -237,7 +374,11 @@ def main():
     format_countries()
     format_athletes()
     format_games()
+    format_results()
+    format_sports()
+    format_events()
 
 
 if __name__ == "__main__":
+
     main()
