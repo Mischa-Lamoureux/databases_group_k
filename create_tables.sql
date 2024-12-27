@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS athlete (
 CREATE TABLE IF NOT EXISTS game (
 	game_id INT PRIMARY KEY,
 	title VARCHAR(256) NOT NULL,
+	year SMALLINT,
 	city VARCHAR(128) NOT NULL,
 	start_date DATE,
 	end_date DATE,

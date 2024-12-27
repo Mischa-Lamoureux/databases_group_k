@@ -198,7 +198,7 @@ def format_games():
         df["end_date"] + " " + df["year"].astype(str), errors="coerce", dayfirst=True
     )
 
-    delete_columns(df, ["edition_url", "year", "country_flag_url", "competition_date"])
+    delete_columns(df, ["edition_url", "country_flag_url", "competition_date"])
 
     rename_columns(
         df,
