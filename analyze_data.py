@@ -19,7 +19,7 @@ class DBConfig:
     PORT = "5432"
     DB_NAME = "olympic_games_history"
     USERNAME = "postgres"
-    PASSWORD = "hello"
+    PASSWORD = "XXXXX"
 
 
 # connect to DB
@@ -106,7 +106,7 @@ def get_table_with_calculated_age(conn):
         df_athletes["age"].dt.days / 365
     )  # format age column from days to years
 
-    # creating some filters for position, winter/summer games and gender
+    # creating some filters for position, winter/summer games and gender:
     gold_medalist = df_athletes["position"] == "1"
     silver_medalist = df_athletes["position"] == "2"
     bronze_medalist = df_athletes["position"] == "3"
@@ -115,7 +115,7 @@ def get_table_with_calculated_age(conn):
     filter_male = df_athletes["gender"] == "Male"
     filter_female = df_athletes["gender"] == "Female"
 
-    # calculating average ages grouped by the year of the game and creating different DataFrames for plotting later
+    # calculating average ages grouped by the year of the game and creating different DataFrames for plotting later.
     # (all gender) summer games gold, silver, bronze:
     av_age_gold_medalists_summer_all = (
         df_athletes[gold_medalist & summer_games]
